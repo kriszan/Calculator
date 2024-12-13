@@ -45,7 +45,7 @@ public class MyController {
             public void changed(ObservableValue<? extends String> observableValue, String oldVal, String newVal) {
                 if (!newVal.matches("-?(0|[1-9]\\d*)")) {
                     //inputLeft.setText(inputLeft.getText().substring(0,inputLeft.getLength()-1));
-                    inputLeft.setText(newVal.replaceAll("[^\\d]", ""));
+                    inputLeft.setText(newVal.replaceAll("[^\\d-]", ""));
                 }
             }
         });
@@ -55,7 +55,7 @@ public class MyController {
             public void changed(ObservableValue<? extends String> observableValue, String oldVal, String newVal) {
                 if (!newVal.matches("-?(0|[1-9]\\d*)")) {
                     //inputLeft.setText(inputLeft.getText().substring(0,inputLeft.getLength()-1));
-                    inputRight.setText(newVal.replaceAll("[^\\d]", ""));
+                    inputRight.setText(newVal.replaceAll("[^\\d-]", ""));
                 }
             }
         });
@@ -66,7 +66,7 @@ public class MyController {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 Button o = (Button) mouseEvent.getSource();
-                MyButtonClick(o.getText().toString());
+                MyButtonClick(o.getText());
             }
         };
     }
@@ -77,24 +77,48 @@ public class MyController {
         String rightText = inputRight.getText();
 
         try {
-            String operation = String.join("", leftText, inputparam, rightText);
+            double leftOperand = Double.parseDouble(leftText);
+            double rightOperand = Double.parseDouble(rightText);
+            double result = 0;
+            switch (inputparam) {
+                case "+":
+                    result = leftOperand + rightOperand;
+                    break;
+                case "-":
+                    result = leftOperand - rightOperand;
+                    break;
+                case "*":
+                    result = leftOperand * rightOperand;
+                    break;
+                case "%":
+                    result = leftOperand % rightOperand;
+                    break;
+                case "/":
+                    result = leftOperand / rightOperand; // Handle division by zero
+                    if (rightOperand == 0) {
+                        throw new ArithmeticException("Cannot divide by zero.");
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid operation.");
+            }
 
-            //ScriptEngineManager mgr = new ScriptEngineManager(null);
-            //ScriptEngine engine = new ScriptEngineManager().getEngineByName("");
-            //Object tmp = engine.eval(operation);
-            //System.err.print(new DecimalFormat("##.00").format(mgr.getEngineByName("JavaScript").eval(operation).toString()));
-            //System.err.print(new DecimalFormat("##.00").format(mgr.getEngineByName("JavaScript").eval(operation).toString()));
-            //outputLabel.setText(new DecimalFormat("##.00").format(.toString()));
-            outputLabel.setText(new DecimalFormat("##.00").format(new ScriptEngineManager().getEngineByName("JavaScript").eval(operation)).toString());
+            outputLabel.setText(new DecimalFormat("##.00").format(result));
+            if (result instanceof Double d) {
+                outputLabel.setText(new DecimalFormat("##.00").format(d));
+            } else {
+                outputLabel.setText("Error: Invalid calculation.");
+            }
+
+
+            //JAVA 8+ környezettől nincsen beépítve a ScriptEngineManager :( megoldás lehet a GraalVM
+            //String operation = String.join("", leftText, inputparam, rightText);
+            //outputLabel.setText(new DecimalFormat("##.00").format(new ScriptEngineManager().getEngineByName("JavaScript").eval(operation)).toString());
         } catch (Exception e) {
-            System.err.print("Invalid param: " + leftText + " || " + rightText);
-
-
-            Alert a = new Alert(Alert.AlertType.NONE);
-            a.setAlertType(Alert.AlertType.ERROR);
-            a.setTitle("Error");
-            a.setContentText(e.toString());
-            a.show();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("Invalid calculation: " + e.getMessage());
+            alert.show();
         }
     }
 }

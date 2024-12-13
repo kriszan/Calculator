@@ -13,38 +13,41 @@ import javafx.scene.input.MouseEvent;
 
 import javax.script.*;
 import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.logging.Logger;
 
 public class MyController {
     @FXML
     private Label outputLabel;
     @FXML
-    private TextField inputLeft;
-    @FXML
-    private TextField inputRight;
-    @FXML
-    private Button buttonPlus;
-    @FXML
-    private Button buttonMinus;
-    @FXML
-    private Button buttonStar;
-    @FXML
-    private Button buttonPer;
-    @FXML
-    private Button buttonSzazalek;
+    private TextField inputRight, inputLeft;
+
+    private static Map<String, BiFunction<Double, Double, Double>> operators;
 
     public void initialize() {
-        buttonPlus.setOnMouseClicked(myMouseClickEvent());
-        buttonMinus.setOnMouseClicked(myMouseClickEvent());
-        buttonStar.setOnMouseClicked(myMouseClickEvent());
-        buttonPer.setOnMouseClicked(myMouseClickEvent());
-        buttonSzazalek.setOnMouseClicked(myMouseClickEvent());
 
+         operators = new HashMap<>();
+
+        operators.put("+", (a, b) -> a + b);
+        operators.put("-", (a, b) -> a - b);
+        operators.put("*", (a, b) -> a * b);
+        operators.put("/", (a, b) -> {
+            if (b == 0) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setContentText("Zero no good");
+                alert.show();
+            }
+            return a / b;
+        });
+        operators.put("%", (a, b) -> a % b);
 
         inputLeft.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String oldVal, String newVal) {
                 if (!newVal.matches("-?(0|[1-9]\\d*)")) {
-                    //inputLeft.setText(inputLeft.getText().substring(0,inputLeft.getLength()-1));
                     inputLeft.setText(newVal.replaceAll("[^\\d-]", ""));
                 }
             }
@@ -54,66 +57,21 @@ public class MyController {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String oldVal, String newVal) {
                 if (!newVal.matches("-?(0|[1-9]\\d*)")) {
-                    //inputLeft.setText(inputLeft.getText().substring(0,inputLeft.getLength()-1));
                     inputRight.setText(newVal.replaceAll("[^\\d-]", ""));
                 }
             }
         });
     }
 
-    private EventHandler<MouseEvent> myMouseClickEvent() {
-        return new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                Button o = (Button) mouseEvent.getSource();
-                MyButtonClick(o.getText());
-            }
-        };
-    }
-
-
-    protected void MyButtonClick(String inputparam) {
-        String leftText = inputLeft.getText();
-        String rightText = inputRight.getText();
-
+    public void MyButtonClick(ActionEvent actionEvent) {
         try {
-            double leftOperand = Double.parseDouble(leftText);
-            double rightOperand = Double.parseDouble(rightText);
-            double result = 0;
-            switch (inputparam) {
-                case "+":
-                    result = leftOperand + rightOperand;
-                    break;
-                case "-":
-                    result = leftOperand - rightOperand;
-                    break;
-                case "*":
-                    result = leftOperand * rightOperand;
-                    break;
-                case "%":
-                    result = leftOperand % rightOperand;
-                    break;
-                case "/":
-                    result = leftOperand / rightOperand; // Handle division by zero
-                    if (rightOperand == 0) {
-                        throw new ArithmeticException("Cannot divide by zero.");
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid operation.");
-            }
+            Button btn = (Button) actionEvent.getSource();
+            String input = btn.getText();
+            Double leftText = Double.parseDouble(inputLeft.getText());
+            Double rightText = Double.parseDouble(inputRight.getText());
+            double result = operators.get(input).apply(leftText, rightText);
 
-            outputLabel.setText(new DecimalFormat("##.00").format(result));
-            if (result instanceof Double d) {
-                outputLabel.setText(new DecimalFormat("##.00").format(d));
-            } else {
-                outputLabel.setText("Error: Invalid calculation.");
-            }
-
-
-            //JAVA 8+ környezettől nincsen beépítve a ScriptEngineManager :( megoldás lehet a GraalVM
-            //String operation = String.join("", leftText, inputparam, rightText);
-            //outputLabel.setText(new DecimalFormat("##.00").format(new ScriptEngineManager().getEngineByName("JavaScript").eval(operation)).toString());
+            outputLabel.setText(String.format("%.2f", result));
         } catch (Exception e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
